@@ -1,0 +1,5 @@
+name: Wake up Render backend
+        run: |
+          echo "Pinging Render to keep it awake..."
+          curl -s -o /dev/null -w "HTTP %{http_code}" https://resume-ai-1-4zat.onrender.com/health || true
+          echo ""
