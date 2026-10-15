@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AutoResume AI — Land More Interviews</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="nav">
+  <a href="index.html" class="nav-logo"><span class="logo-pulse"></span>AutoResume AI</a>
+  <div class="nav-links">
+    <a href="index.html">Home</a><a href="builder.html">Build</a>
+    <a href="upload.html">Upload</a><a href="jd_input.html">Analyze JD</a>
+    <a href="dashboard.html">Dashboard</a><a href="history.html">History</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="container">
+    <div class="hero-eyebrow anim">✦ AI-Powered Resume Intelligence</div>
+    <h1 class="anim d1">Land More Interviews<br>with <em>Smarter Resumes</em></h1>
+    <p class="hero-sub anim d2">Get your resume scored against real job descriptions, close skill gaps, and receive a personalized YouTube learning roadmap.</p>
+
+    <div class="anim d2" style="margin-bottom:1.75rem;">
+      <p style="font-size:.7rem;color:var(--t3);margin-bottom:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Your experience level</p>
+      <div class="exp-selector">
+        <button class="exp-btn active" onclick="setExp(this)">🎓 Fresher</button>
+        <button class="exp-btn" onclick="setExp(this)">💼 1–3 Years</button>
+        <button class="exp-btn" onclick="setExp(this)">🚀 3–7 Years</button>
+        <button class="exp-btn" onclick="setExp(this)">⭐ Senior 7+</button>
+      </div>
+    </div>
+
+    <div class="hero-actions anim d3">
+      <a href="builder.html" class="btn btn-primary btn-lg">✏️ Create Resume</a>
+      <a href="upload.html" class="btn btn-glass btn-lg">📄 Improve Resume</a>
+    </div>
+
+    <div class="hero-stats anim d4">
+      <div class="hero-stat"><span class="hero-stat-num">94%</span><span class="hero-stat-label">ATS Pass Rate</span></div>
+      <div class="hero-stat"><span class="hero-stat-num">3×</span><span class="hero-stat-label">More Callbacks</span></div>
+      <div class="hero-stat"><span class="hero-stat-num">60s</span><span class="hero-stat-label">Analysis Time</span></div>
+    </div>
+  </div>
+</section>
+
+<section style="padding:5rem 0;position:relative;z-index:1;">
+  <div class="container">
+    <div class="text-center mb-2">
+      <div class="section-label" style="justify-content:center;">Features</div>
+      <h2>Everything You Need to Get Hired</h2>
+    </div>
+    <div class="feature-grid">
+      <div class="feature-card card-hover"><div class="feature-icon">📊</div><h3>ATS Fit Score</h3><p>AI-powered scoring that tells you exactly how well your resume matches any job description.</p></div>
+      <div class="feature-card card-hover"><div class="feature-icon">🎯</div><h3>Skill Gap Analysis</h3><p>Know exactly which skills are missing with a prioritized, domain-specific improvement plan.</p></div>
+      <div class="feature-card card-hover"><div class="feature-icon">▶️</div><h3>YouTube Roadmap</h3><p>Every missing skill comes with a curated YouTube tutorial so you know exactly what to learn next.</p></div>
+      <div class="feature-card card-hover"><div class="feature-icon">✅</div><h3>Consistency Check</h3><p>We verify your listed skills actually appear in your projects and experience sections.</p></div>
+      <div class="feature-card card-hover"><div class="feature-icon">💼</div><h3>Job Role Targeting</h3><p>Select your target position — Frontend Dev, Data Engineer, QA, ML Engineer and 30+ more roles.</p></div>
+      <div class="feature-card card-hover"><div class="feature-icon">📈</div><h3>Progress Tracking</h3><p>Dashboard with charts tracking your score improvement across every analysis you run.</p></div>
+    </div>
+  </div>
+</section>
+
+<section style="padding:5rem 0;background:rgba(255,255,255,.008);border-top:1px solid var(--gb);border-bottom:1px solid var(--gb);position:relative;z-index:1;">
+  <div class="container text-center">
+    <div class="section-label" style="justify-content:center;">How It Works</div>
+    <h2>Three Steps to a Stronger Resume</h2>
+    <div class="flow-steps">
+      <div class="flow-step"><div class="flow-num">1</div><h4>Upload or Build</h4><p>Upload your existing PDF/DOCX or build from scratch with our guided form</p></div>
+      <div class="flow-step"><div class="flow-num">2</div><h4>Paste Job Description</h4><p>Paste any job posting and select your target role and domain</p></div>
+      <div class="flow-step"><div class="flow-num">3</div><h4>Get Your Report</h4><p>Receive fit score, skill gaps, YouTube roadmap and section-by-section improvements</p></div>
+    </div>
+  </div>
+</section>
+
+<section style="padding:5rem 0;text-align:center;position:relative;z-index:1;">
+  <div class="container">
+    <div class="section-label" style="justify-content:center;">Get Started</div>
+    <h2 style="max-width:540px;margin:0 auto .9rem;">Ready to Land That Job?</h2>
+    <p style="color:var(--t2);margin-bottom:2rem;">Upload your resume — analysis takes under 60 seconds.</p>
+    <div class="hero-actions">
+      <a href="upload.html" class="btn btn-primary btn-lg">📄 Analyze My Resume</a>
+      <a href="builder.html" class="btn btn-outline btn-lg">✏️ Build From Scratch</a>
+    </div>
+  </div>
+</section>
+
+<div class="toast-container" id="toast-container"></div>
+<script src="main.js"></script>
+<script>
+function setExp(btn){
+  document.querySelectorAll('.exp-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

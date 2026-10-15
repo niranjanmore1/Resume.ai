@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard — AutoResume AI</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<nav class="nav">
+  <a href="index.html" class="nav-logo"><span class="logo-pulse"></span>AutoResume AI</a>
+  <div class="nav-links">
+    <a href="index.html">Home</a><a href="builder.html">Build</a>
+    <a href="upload.html">Upload</a><a href="jd_input.html">Analyze JD</a>
+    <a href="dashboard.html" class="active">Dashboard</a><a href="history.html">History</a>
+  </div>
+</nav>
+
+<div class="page">
+<div class="container">
+
+  <div class="flex justify-between items-center mb-2" style="flex-wrap:wrap;gap:1rem;">
+    <div><h2>Dashboard</h2><p style="color:var(--t2);font-size:.85rem;">Track your resume improvement over time</p></div>
+    <a href="upload.html" class="btn btn-primary">+ New Analysis</a>
+  </div>
+
+  <!-- Stats -->
+  <div class="stat-row">
+    <div class="stat-card"><span class="stat-number" id="st-total">0</span><div class="stat-label">Total Analyses</div></div>
+    <div class="stat-card"><span class="stat-number" id="st-avg">—</span><div class="stat-label">Average Fit Score</div></div>
+    <div class="stat-card"><span class="stat-number" id="st-best">—</span><div class="stat-label">Best Score</div></div>
+  </div>
+
+  <!-- Charts -->
+  <div class="dashboard-grid">
+    <div class="card">
+      <div class="flex justify-between items-center" style="margin-bottom:1.25rem;">
+        <h3 style="font-size:.92rem;">📈 Score Trend</h3>
+        <span id="trend-pill" style="display:none;" class="badge badge-neon"></span>
+      </div>
+      <div style="height:240px;position:relative;">
+        <canvas id="trendChart"></canvas>
+      </div>
+      <div id="trend-empty" style="display:none;text-align:center;padding:2rem;color:var(--t3);">
+        <div style="font-size:2rem;margin-bottom:.5rem;">📊</div>
+        <p style="font-size:.82rem;">No data yet — <a href="upload.html">analyze your first resume</a></p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="font-size:.92rem;margin-bottom:1.25rem;">🌐 Domain Distribution</h3>
+      <div style="height:240px;position:relative;">
+        <canvas id="domainChart"></canvas>
+      </div>
+      <div id="domain-empty" style="display:none;text-align:center;padding:2rem;color:var(--t3);">
+        <div style="font-size:2rem;margin-bottom:.5rem;">🎯</div>
+        <p style="font-size:.82rem;">No data yet</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- History table -->
+  <div class="card mt-3">
+    <div class="flex justify-between items-center" style="margin-bottom:1.25rem;">
+      <h3 style="font-size:.92rem;">📋 Recent Analyses</h3>
+      <a href="history.html" class="btn btn-glass btn-sm">View All →</a>
+    </div>
+    <div id="tbl-empty" style="text-align:center;padding:2.5rem;color:var(--t3);">
+      <div style="font-size:2.5rem;margin-bottom:.75rem;">📄</div>
+      <p>No analyses yet. <a href="upload.html" style="color:var(--neon);">Analyze your first resume →</a></p>
+    </div>
+    <div class="table-wrap" id="tbl-wrap" style="display:none;">
+      <table>
+        <thead><tr><th>Score</th><th>File / JD</th><th>Domain</th><th>Consistency</th><th>Date</th><th></th></tr></thead>
+        <tbody id="tbl-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+<script src="main.js"></script>
+<script>
+const DL = {tech:'Software',data:'Data/AI',business:'Business',design:'Design',general:'General'};
+const DC = ['#00E5FF','#00FF94','#FFB800','#FF4ECD','#A78BFA'];
+
+function sc(s){
+  if(s>=70)return{bg:'rgba(0,255,148,.1)',fg:'#00FF94'};
+  if(s>=45)return{bg:'rgba(255,184,0,.1)',fg:'#FFB800'};
+  return{bg:'rgba(239,68,68,.1)',fg:'#FC8181'};
+}
+
+Chart.defaults.color='#7B8DB0';
+Chart.defaults.borderColor='rgba(255,255,255,0.04)';
+
+async function load(){
+  try{
+    const [dr,hr]=await Promise.all([
+      fetch(`${API}/dashboard_data`),
+      fetch(`${API}/history?limit=10`)
+    ]);
+
+    if(!dr.ok||!hr.ok)throw new Error(`HTTP ${dr.status}`);
+
+    const dd=await dr.json();
+    const hd=await hr.json();
+
+    if(!dd.success||!hd.success)throw new Error(dd.error||hd.error||'API error');
+
+    const dash=dd.dashboard||{};
+    const history=hd.history||[];
+    const avg=dash.averages||{};
+    const total=Number(avg.total||avg.total_analyses||0);
+    const avgFit=total?Math.round(Number(avg.avg_fit||0)):0;
+    const best=history.length?Math.round(Math.max(...history.map(h=>h.fit_score||0))):0;
+
+    document.getElementById('st-total').textContent=total||'0';
+    document.getElementById('st-avg').textContent=total?avgFit+'%':'—';
+    document.getElementById('st-best').textContent=total?best+'%':'—';
+
+    // Trend chart
+    const trend=dash.score_trend||[];
+    if(trend.length){
+      const labels=trend.map(t=>new Date(t.created_at).toLocaleDateString('en',{month:'short',day:'numeric'}));
+      const fits=trend.map(t=>Math.round(t.fit_score||0));
+      const cons=trend.map(t=>Math.round(t.consistency_score||0));
+
+      if(trend.length>1){
+        const diff=fits[fits.length-1]-fits[0];
+        const pill=document.getElementById('trend-pill');
+        pill.style.display='inline-flex';
+        pill.className='badge '+(diff>=0?'badge-green':'badge-danger');
+        pill.textContent=diff>=0?`▲ +${diff}% improved`:`▼ ${Math.abs(diff)}% declined`;
+      }
+
+      new Chart(document.getElementById('trendChart'),{
+        type:'line',
+        data:{labels,datasets:[
+          {label:'Fit Score',data:fits,borderColor:'#00E5FF',backgroundColor:'rgba(0,229,255,0.06)',fill:true,tension:.4,pointBackgroundColor:'#00E5FF',pointBorderColor:'#050810',pointBorderWidth:2,pointRadius:5},
+          {label:'Consistency',data:cons,borderColor:'#00FF94',backgroundColor:'transparent',fill:false,tension:.4,pointBackgroundColor:'#00FF94',pointBorderColor:'#050810',pointBorderWidth:2,pointRadius:4,borderDash:[4,4]}
+        ]},
+        options:{
+          responsive:true,maintainAspectRatio:false,
+          plugins:{
+            legend:{position:'bottom',labels:{color:'#7B8DB0',boxWidth:10,padding:14,font:{size:11,family:'Plus Jakarta Sans'}}},
+            tooltip:{backgroundColor:'rgba(8,13,26,.96)',borderColor:'rgba(255,255,255,.07)',borderWidth:1,titleColor:'#EEF2FF',bodyColor:'#7B8DB0',padding:10,cornerRadius:8}
+          },
+          scales:{
+            y:{min:0,max:100,ticks:{color:'#3D4A6B',font:{size:11}},grid:{color:'rgba(255,255,255,.03)'}},
+            x:{ticks:{color:'#3D4A6B',font:{size:11}},grid:{display:false}}
+          }
+        }
+      });
+    } else {
+      document.getElementById('trendChart').style.display='none';
+      document.getElementById('trend-empty').style.display='block';
+    }
+
+    // Domain chart
+    const domains=dash.domain_distribution||[];
+    if(domains.length){
+      new Chart(document.getElementById('domainChart'),{
+        type:'doughnut',
+        data:{
+          labels:domains.map(d=>DL[d.domain]||d.domain),
+          datasets:[{data:domains.map(d=>d.count),backgroundColor:DC.slice(0,domains.length),borderWidth:0,spacing:3,borderRadius:5}]
+        },
+        options:{
+          responsive:true,maintainAspectRatio:false,cutout:'70%',
+          plugins:{
+            legend:{position:'bottom',labels:{color:'#7B8DB0',boxWidth:10,padding:14,font:{size:11,family:'Plus Jakarta Sans'}}},
+            tooltip:{backgroundColor:'rgba(8,13,26,.96)',borderColor:'rgba(255,255,255,.07)',borderWidth:1,titleColor:'#EEF2FF',bodyColor:'#7B8DB0',padding:10,cornerRadius:8}
+          }
+        }
+      });
+    } else {
+      document.getElementById('domainChart').style.display='none';
+      document.getElementById('domain-empty').style.display='block';
+    }
+
+    // Table
+    if(history.length){
+      document.getElementById('tbl-empty').style.display='none';
+      document.getElementById('tbl-wrap').style.display='block';
+      document.getElementById('tbl-body').innerHTML=history.map((h,i)=>{
+        const s=sc(h.fit_score||0);
+        const prev=history[i+1];
+        const diff=prev?Math.round((h.fit_score||0)-(prev.fit_score||0)):null;
+        const arr=diff===null?'':(diff>2?`<span style="color:#00FF94;font-size:.72rem;"> ▲${diff}%</span>`:diff<-2?`<span style="color:#FC8181;font-size:.72rem;"> ▼${Math.abs(diff)}%</span>`:`<span style="color:var(--t3);font-size:.72rem;"> ─</span>`);
+        const date=new Date(h.created_at).toLocaleDateString('en',{day:'2-digit',month:'short',year:'numeric'});
+        const fname=esc((h.filename||'Resume').replace(/\.[^.]+$/,'').substring(0,22));
+        const jd=h.jd_text?esc(h.jd_text.substring(0,55))+'...':'—';
+        return `<tr>
+          <td><div class="h-score" style="background:${s.bg};color:${s.fg};">${Math.round(h.fit_score||0)}%</div>${arr}</td>
+          <td><div style="font-weight:700;font-size:.83rem;">${fname}</div><div style="font-size:.7rem;color:var(--t3);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${jd}</div></td>
+          <td><span class="badge badge-neon" style="font-size:.65rem;">${DL[h.domain]||h.domain||'General'}</span></td>
+          <td style="color:var(--t2);font-size:.82rem;">${Math.round(h.consistency_score||0)}%</td>
+          <td style="color:var(--t3);font-size:.78rem;">${date}</td>
+          <td><a href="results.html?result_id=${h.result_id}" class="btn btn-glass btn-sm">View</a></td>
+        </tr>`;
+      }).join('');
+    }
+
+  }catch(e){
+    console.error('Dashboard error:',e);
+    showToast('❌ Backend error: '+e.message+' — make sure server is running');
+    document.getElementById('trend-empty').style.display='block';
+    document.getElementById('domain-empty').style.display='block';
+    document.getElementById('trendChart').style.display='none';
+    document.getElementById('domainChart').style.display='none';
+  }
+}
+
+load();
+</script>
+</body>
+</html>

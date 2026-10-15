@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Analyze JD — AutoResume AI</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="nav">
+  <a href="index.html" class="nav-logo"><span class="logo-pulse"></span>AutoResume AI</a>
+  <div class="nav-links">
+    <a href="index.html">Home</a><a href="builder.html">Build</a>
+    <a href="upload.html">Upload</a><a href="jd_input.html" class="active">Analyze JD</a>
+    <a href="dashboard.html">Dashboard</a><a href="history.html">History</a>
+  </div>
+</nav>
+<div class="loading-overlay" id="loading-overlay" style="display:none;"><div class="spinner"></div><p id="loading-text">Analyzing...</p></div>
+<div class="page">
+<div class="container" style="max-width:820px;">
+  <div class="page-header text-center"><h2>Job Description Analyzer</h2><p>Paste any job description and match it against your uploaded resume</p></div>
+
+  <div class="card mb-2">
+    <h3 style="font-size:.88rem;margin-bottom:.75rem;">🌐 Select Domain</h3>
+    <div class="domain-grid">
+      <div class="domain-card active" onclick="setDom('tech',this)"><div class="d-icon">💻</div><div class="d-label">Software</div></div>
+      <div class="domain-card" onclick="setDom('data',this)"><div class="d-icon">📊</div><div class="d-label">Data/AI</div></div>
+      <div class="domain-card" onclick="setDom('business',this)"><div class="d-icon">📈</div><div class="d-label">Business</div></div>
+      <div class="domain-card" onclick="setDom('design',this)"><div class="d-icon">🎨</div><div class="d-label">Design</div></div>
+      <div class="domain-card" onclick="setDom('general',this)"><div class="d-icon">🌐</div><div class="d-label">General</div></div>
+    </div>
+    <input type="hidden" id="dom-val" value="tech">
+  </div>
+
+  <div class="card">
+    <div class="flex justify-between items-center" style="margin-bottom:.75rem;">
+      <h3 style="font-size:.88rem;">📝 Job Description</h3>
+      <button onclick="pasteSample()" style="background:none;border:none;color:var(--neon);font-size:.76rem;font-weight:700;cursor:pointer;text-decoration:underline;">Paste sample JD</button>
+    </div>
+    <textarea class="form-textarea" id="jd-text" style="min-height:300px;" oninput="updateCC()" placeholder="Paste the complete job description here...
+
+Example:
+Job Title: Software Engineer
+Requirements:
+• 2+ years Python and JavaScript experience
+• React.js and Node.js knowledge
+• PostgreSQL, MongoDB, Redis
+• Docker, AWS, CI/CD pipelines
+• REST API design experience..."></textarea>
+    <div style="text-align:right;font-size:.72rem;color:var(--t3);margin-top:4px;" id="cc">0 characters</div>
+    <div id="jerr" style="display:none;" class="alert alert-error mt-2"><span>⚠️</span><span id="jerrm"></span></div>
+    <div class="flex justify-between items-center mt-2">
+      <p style="font-size:.76rem;color:var(--t3);">💡 More text = more accurate matching</p>
+      <button class="btn btn-primary btn-lg" onclick="analyze()" id="abtn">🚀 Analyze Resume</button>
+    </div>
+  </div>
+</div>
+</div>
+<div class="toast-container" id="toast-container"></div>
+<script src="main.js"></script>
+<script>
+let dom='tech';
+function setDom(d,el){dom=d;document.getElementById('dom-val').value=d;document.querySelectorAll('.domain-card').forEach(c=>c.classList.remove('active'));el.classList.add('active');}
+function updateCC(){const l=document.getElementById('jd-text').value.length;const el=document.getElementById('cc');el.textContent=l+' characters';el.style.color=l>=100?'#00FF94':'var(--t3)';}
+function pasteSample(){
+  const s={tech:"Software Engineer — TechCorp\n\nWe are looking for a skilled Software Engineer.\n\nRequirements:\n• Python, JavaScript, TypeScript\n• React.js, Node.js, REST APIs\n• PostgreSQL, MongoDB, Redis\n• Docker, AWS, CI/CD\n• Git, Agile methodology",data:"Data Scientist — AnalyticsCo\n\nJoin our data team.\n\nRequirements:\n• Python, R, SQL\n• Scikit-learn, TensorFlow, PyTorch\n• Tableau, Matplotlib, Power BI\n• A/B testing, statistics\n• Spark, Airflow, ETL pipelines",business:"Product Manager — StartupXYZ\n\nOwn our product roadmap.\n\nRequirements:\n• 3+ years product management\n• Jira, Confluence, SQL\n• Stakeholder management, OKRs\n• Excellent communication\n• Agile methodology",design:"UX Designer — DesignStudio\n\nCreate user-centered experiences.\n\nRequirements:\n• Figma, Sketch, Adobe XD\n• User research, wireframing\n• Usability testing\n• Design systems\n• Basic HTML/CSS",general:"Marketing Coordinator\n\nSupport marketing campaigns.\n\nRequirements:\n• Digital marketing knowledge\n• Social media management\n• Google Analytics, SEO\n• Strong communication\n• Microsoft Office"};
+  document.getElementById('jd-text').value=s[dom]||s.general;updateCC();showToast('Sample JD pasted');}
+
+async function analyze(){
+  const jd=document.getElementById('jd-text').value.trim();
+  const rid=localStorage.getItem('resume_id');
+  if(!rid){showToast('⚠️ Please upload a resume first');setTimeout(()=>window.location.href='upload.html',1500);return;}
+  if(!jd||jd.length<30){document.getElementById('jerrm').textContent='Please paste a complete job description';document.getElementById('jerr').style.display='flex';return;}
+  document.getElementById('jerr').style.display='none';
+  showLoading('Analyzing your resume against this JD...');
+  document.getElementById('abtn').disabled=true;
+  try{
+    const r=await fetch(`${API}/analyze_jd`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({resume_id:parseInt(rid),jd_text:jd,domain:dom})});
+    const d=await r.json();
+    if(!d.success){document.getElementById('jerrm').textContent=d.error;document.getElementById('jerr').style.display='flex';return;}
+    localStorage.setItem('result_id',d.result_id);
+    window.location.href=`results.html?result_id=${d.result_id}`;
+  }catch(e){document.getElementById('jerrm').textContent='Server error — make sure backend is running on port 5000';document.getElementById('jerr').style.display='flex';}
+  finally{hideLoading();document.getElementById('abtn').disabled=false;}
+}
+</script>
+</body>
+</html>

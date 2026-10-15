@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Upload Resume — AutoResume AI</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="nav">
+  <a href="index.html" class="nav-logo"><span class="logo-pulse"></span>AutoResume AI</a>
+  <div class="nav-links">
+    <a href="index.html">Home</a><a href="builder.html">Build</a>
+    <a href="upload.html" class="active">Upload</a><a href="jd_input.html">Analyze JD</a>
+    <a href="dashboard.html">Dashboard</a><a href="history.html">History</a>
+  </div>
+</nav>
+<div class="loading-overlay" id="loading-overlay" style="display:none;">
+  <div class="spinner"></div><p id="loading-text">Processing...</p>
+</div>
+<div class="page">
+  <div class="container" style="max-width:740px;">
+    <div class="steps">
+      <div class="step-item"><div class="step-circle active" id="s1">1</div><span class="step-label active">Upload</span></div>
+      <div class="step-line" id="l1"></div>
+      <div class="step-item"><div class="step-circle" id="s2">2</div><span class="step-label">Job Description</span></div>
+      <div class="step-line" id="l2"></div>
+      <div class="step-item"><div class="step-circle" id="s3">3</div><span class="step-label">Results</span></div>
+    </div>
+
+    <div id="panel-upload">
+      <div class="page-header text-center"><h2>Upload Your Resume</h2><p>PDF or DOCX · Max 10 MB</p></div>
+      <div class="upload-zone" id="zone" onclick="document.getElementById('fi').click()">
+        <input type="file" id="fi" accept=".pdf,.docx,.doc">
+        <span class="upload-icon">📄</span>
+        <h3>Drop resume here or click to browse</h3>
+        <p>Supports PDF and DOCX</p>
+      </div>
+      <div id="file-preview" style="display:none;" class="card mt-2">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span style="font-size:1.4rem;">📄</span>
+            <div><div style="font-weight:700;" id="fn"></div><div style="font-size:.75rem;color:var(--t2);" id="fs"></div></div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="removeFile()">✕ Remove</button>
+        </div>
+      </div>
+      <div class="card mt-2">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Domain / Industry</label>
+          <select class="form-select" id="domain">
+            <option value="tech">💻 Software & Engineering</option>
+            <option value="data">📊 Data Science & AI</option>
+            <option value="business">📈 Business & Management</option>
+            <option value="design">🎨 Design & Creative</option>
+            <option value="general">🌐 General</option>
+          </select>
+        </div>
+      </div>
+      <div id="err1" style="display:none;" class="alert alert-error mt-2"><span>⚠️</span><span id="err1m"></span></div>
+      <div style="text-align:right;margin-top:1.5rem;">
+        <button class="btn btn-primary btn-lg" onclick="doUpload()">Upload & Continue →</button>
+      </div>
+    </div>
+
+    <div id="panel-jd" style="display:none;">
+      <div class="page-header text-center"><h2>Paste Job Description</h2><p>We'll compute your fit score against this JD</p></div>
+      <div class="card">
+        <div class="form-group">
+          <label class="form-label">Job Description</label>
+          <textarea class="form-textarea" id="jd" style="min-height:280px;" placeholder="Paste the full job description here...
+
+Example:
+We are looking for a Software Engineer with 2+ years of Python and React experience. Must have knowledge of REST APIs, PostgreSQL, and Docker. Experience with AWS is a plus..."></textarea>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Confirm Domain</label>
+          <select class="form-select" id="jd-domain">
+            <option value="tech">💻 Software & Engineering</option>
+            <option value="data">📊 Data Science & AI</option>
+            <option value="business">📈 Business & Management</option>
+            <option value="design">🎨 Design & Creative</option>
+            <option value="general">🌐 General</option>
+          </select>
+        </div>
+      </div>
+      <div id="err2" style="display:none;" class="alert alert-error mt-2"><span>⚠️</span><span id="err2m"></span></div>
+      <div class="flex justify-between mt-3">
+        <button class="btn btn-glass" onclick="goStep(1)">← Back</button>
+        <button class="btn btn-primary btn-lg" onclick="doAnalyze()">🚀 Analyze Now</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast-container" id="toast-container"></div>
+<script src="main.js"></script>
+<script>
+let resumeId = null;
+const zone = document.getElementById('zone');
+zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag-over');});
+zone.addEventListener('dragleave',()=>zone.classList.remove('drag-over'));
+zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag-over');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0]);});
+document.getElementById('fi').addEventListener('change',function(){if(this.files[0])handleFile(this.files[0]);});
+
+function handleFile(f){
+  if(f.size>10*1024*1024){showErr(1,'File too large (max 10 MB)');return;}
+  if(!f.name.match(/\.(pdf|docx|doc)$/i)){showErr(1,'Only PDF and DOCX files supported');return;}
+  hideErr(1);
+  document.getElementById('fn').textContent=f.name;
+  document.getElementById('fs').textContent=(f.size/1024).toFixed(1)+' KB';
+  document.getElementById('file-preview').style.display='block';
+  zone.style.display='none';
+}
+function removeFile(){document.getElementById('fi').value='';document.getElementById('file-preview').style.display='none';zone.style.display='block';}
+
+function goStep(n){
+  document.getElementById('panel-upload').style.display=n===1?'block':'none';
+  document.getElementById('panel-jd').style.display=n===2?'block':'none';
+  [1,2,3].forEach(i=>{
+    const c=document.getElementById('s'+i);
+    c.className='step-circle'+(i<n?' done':i===n?' active':'');
+  });
+  [1,2].forEach(i=>{document.getElementById('l'+i).className='step-line'+(i<n?' done':'');});
+  if(n===2)document.getElementById('jd-domain').value=document.getElementById('domain').value;
+}
+
+async function doUpload(){
+  const fi=document.getElementById('fi');
+  if(!fi.files[0]){showErr(1,'Please select a resume file');return;}
+  showLoading('Parsing your resume...');
+  const fd=new FormData();
+  fd.append('file',fi.files[0]);
+  fd.append('domain',document.getElementById('domain').value);
+  try{
+    const r=await fetch(`${API}/upload_resume`,{method:'POST',body:fd});
+    const d=await r.json();
+    if(!d.success){showErr(1,d.error);return;}
+    resumeId=d.resume_id;
+    localStorage.setItem('resume_id',resumeId);
+    showToast(`✅ Found ${d.skills.length} skills in your resume`);
+    goStep(2);
+  }catch(e){showErr(1,'Cannot connect to backend. Make sure it is running.');}
+  finally{hideLoading();}
+}
+
+async function doAnalyze(){
+  const jd=document.getElementById('jd').value.trim();
+  if(!jd||jd.length<30){showErr(2,'Please paste a complete job description');return;}
+  showLoading('Analyzing your resume against the job description...');
+  try{
+    const r=await fetch(`${API}/analyze_jd`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({resume_id:resumeId||parseInt(localStorage.getItem('resume_id')),jd_text:jd,domain:document.getElementById('jd-domain').value})});
+    const d=await r.json();
+    if(!d.success){showErr(2,d.error);return;}
+    localStorage.setItem('result_id',d.result_id);
+    window.location.href=`results.html?result_id=${d.result_id}`;
+  }catch(e){showErr(2,'Server error. Make sure backend is running.');}
+  finally{hideLoading();}
+}
+
+function showErr(n,m){const e=document.getElementById('err'+n);document.getElementById('err'+n+'m').textContent=m;e.style.display='flex';}
+function hideErr(n){document.getElementById('err'+n).style.display='none';}
+</script>
+</body>
+</html>

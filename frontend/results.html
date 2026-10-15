@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Results — AutoResume AI</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="nav">
+  <a href="index.html" class="nav-logo"><span class="logo-pulse"></span>AutoResume AI</a>
+  <div class="nav-links">
+    <a href="index.html">Home</a><a href="builder.html">Build</a>
+    <a href="upload.html">Upload</a><a href="jd_input.html">Analyze JD</a>
+    <a href="dashboard.html">Dashboard</a><a href="history.html">History</a>
+  </div>
+</nav>
+
+<div class="loading-overlay" id="loading-overlay">
+  <div class="spinner"></div><p>Loading your analysis...</p>
+</div>
+
+<div class="page" id="rpage" style="display:none;">
+<div class="container">
+  <div class="flex justify-between items-center mb-2" style="flex-wrap:wrap;gap:1rem;">
+    <div><h2>Analysis Report</h2><p style="color:var(--t2);font-size:.82rem;" id="meta">—</p></div>
+    <div class="flex gap-2" style="flex-wrap:wrap;">
+      <a href="upload.html" class="btn btn-outline btn-sm">🔄 Re-Analyze</a>
+      <a href="dashboard.html" class="btn btn-glass btn-sm">📊 Dashboard</a>
+    </div>
+  </div>
+
+  <div class="results-grid">
+    <!-- LEFT -->
+    <div>
+      <div class="card card-neon" style="text-align:center;padding:2rem 1.25rem;margin-bottom:1.1rem;">
+        <div class="score-ring-wrap">
+          <canvas id="sc" width="190" height="190"></canvas>
+          <div class="score-ring-inner">
+            <div class="score-ring-num" id="snum">0%</div>
+            <div class="score-ring-sub">ATS Fit Score</div>
+          </div>
+        </div>
+        <div id="sbadge" style="margin-bottom:.75rem;"></div>
+        <p style="font-size:.8rem;color:var(--t2);" id="smsg"></p>
+        <div style="display:flex;gap:5px;margin-top:.9rem;">
+          <div style="flex:1;height:4px;border-radius:999px;background:#EF4444;opacity:.7;"></div>
+          <div style="flex:1;height:4px;border-radius:999px;background:#FFB800;opacity:.7;"></div>
+          <div style="flex:1;height:4px;border-radius:999px;background:#00FF94;opacity:.7;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:.62rem;color:var(--t3);margin-top:3px;"><span>Weak</span><span>Moderate</span><span>Strong</span></div>
+      </div>
+
+      <div class="flex gap-2 mb-2">
+        <div class="hi-bar"><div class="hi-bar-label">Consistency</div><div class="hi-bar-val" id="hcon">—</div></div>
+        <div class="hi-bar"><div class="hi-bar-label">Keywords</div><div class="hi-bar-val" id="hkw">—</div></div>
+      </div>
+
+      <div class="card mb-2">
+        <div class="section-heading">📊 Score Breakdown</div>
+        <div id="comp-scores"></div>
+      </div>
+
+      <div class="card mb-2">
+        <div class="section-heading">💼 Target Position</div>
+        <p style="font-size:.75rem;color:var(--t2);margin-bottom:.6rem;">Select your role for tailored analysis</p>
+        <div class="role-grid" id="role-grid"></div>
+      </div>
+
+      <div class="card" style="background:rgba(0,229,255,.05);border-color:rgba(0,229,255,.2);text-align:center;">
+        <p style="font-size:.82rem;color:var(--neon);margin-bottom:1rem;">Fix the gaps and re-analyze to track progress</p>
+        <a href="upload.html" class="btn btn-primary w-full">🚀 Re-Analyze</a>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div>
+      <div class="tab-nav">
+        <button class="tab-nav-btn active" onclick="st('recs',this)">💡 Recommendations</button>
+        <button class="tab-nav-btn" onclick="st('skills',this)">🎯 Skill Gap</button>
+        <button class="tab-nav-btn" onclick="st('strength',this)">💪 Sections</button>
+        <button class="tab-nav-btn" onclick="st('roadmap',this)">🗺️ YouTube Roadmap</button>
+      </div>
+
+      <div class="result-tab active" id="tab-recs"><div id="rec-list"></div></div>
+
+      <div class="result-tab" id="tab-skills">
+        <div class="card mb-2"><div class="section-heading">✅ Matched Skills</div><div class="chip-group" id="ch-match"></div></div>
+        <div class="card mb-2">
+          <div class="section-heading">❌ Missing Skills</div>
+          <div class="chip-group" id="ch-miss"></div>
+          <p style="font-size:.74rem;color:var(--t3);margin-top:.6rem;">These appear in the JD but not your resume. Add them if you have the experience.</p>
+        </div>
+        <div class="card"><div class="section-heading">⭐ Extra Skills (your resume only)</div><div class="chip-group" id="ch-extra"></div></div>
+      </div>
+
+      <div class="result-tab" id="tab-strength">
+        <div class="card"><div class="section-heading">📝 Section Completeness</div><div id="str-bars"></div></div>
+      </div>
+
+      <div class="result-tab" id="tab-roadmap">
+        <div id="rd-list"></div>
+        <div id="rd-empty" style="display:none;text-align:center;padding:3rem;color:var(--t3);">
+          <div style="font-size:2.5rem;margin-bottom:.75rem;">🎉</div>
+          <p>No skill gaps detected! Your resume matches this role well.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+<script src="main.js"></script>
+<script>
+function st(n,b){
+  document.querySelectorAll('.result-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-nav-btn').forEach(x=>x.classList.remove('active'));
+  document.getElementById('tab-'+n).classList.add('active');b.classList.add('active');
+}
+
+function scolor(s){if(s>=70)return'#00FF94';if(s>=45)return'#FFB800';return'#FC8181';}
+function slabel(s){
+  if(s>=70)return['badge-green','✅ Strong Match'];
+  if(s>=45)return['badge-amber','⚠️ Moderate Match'];
+  return['badge-danger','❌ Needs Work'];
+}
+function smsg(s){
+  if(s>=70)return'Your resume is a strong match. Apply with confidence!';
+  if(s>=45)return'Good potential — follow the recommendations to push above 70%.';
+  return'Needs significant tailoring. Use the roadmap below to close gaps.';
+}
+
+function drawRing(score,color){
+  const c=document.getElementById('sc'),ctx=c.getContext('2d');
+  const cx=95,cy=95,r=84,w=13;
+  ctx.clearRect(0,0,190,190);
+  ctx.beginPath();ctx.arc(cx,cy,r,0,2*Math.PI);
+  ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=w;ctx.stroke();
+  if(score>0){
+    const start=-Math.PI/2,end=start+(2*Math.PI*score/100);
+    ctx.beginPath();ctx.arc(cx,cy,r,start,end);
+    ctx.strokeStyle=color;ctx.lineWidth=w;ctx.lineCap='round';ctx.stroke();
+    ctx.beginPath();ctx.arc(cx,cy,r,start,end);
+    ctx.strokeStyle=color;ctx.lineWidth=w+8;ctx.globalAlpha=.1;ctx.stroke();ctx.globalAlpha=1;
+  }
+}
+
+function animScore(target,color){
+  let cur=0;const el=document.getElementById('snum');const step=target/55;
+  const iv=setInterval(()=>{
+    cur=Math.min(cur+step,target);
+    el.textContent=Math.round(cur)+'%';el.style.color=color;
+    drawRing(cur,color);
+    if(cur>=target)clearInterval(iv);
+  },16);
+}
+
+function renderComp(scores){
+  const L={skills:'🛠️ Skills',projects:'🚀 Projects',experience:'💼 Experience',education:'🎓 Education'};
+  const C={skills:'',projects:'g2',experience:'pk',education:'am'};
+  return Object.entries(scores).map(([k,v])=>`
+    <div class="progress-wrap">
+      <div class="progress-label"><span>${L[k]||k}</span><span>${v}%</span></div>
+      <div class="progress-track"><div class="progress-fill ${C[k]||''}" style="width:0%" data-t="${v}"></div></div>
+    </div>`).join('');
+}
+
+function renderRecs(recs){
+  if(!recs?.length)return'<p style="color:var(--t2);font-size:.82rem;">No recommendations.</p>';
+  return recs.map(r=>`
+    <div class="rec-item">
+      <div class="rec-icon">${r.icon||'💡'}</div>
+      <div class="rec-content" style="flex:1;">
+        <div class="flex items-center gap-2" style="flex-wrap:wrap;margin-bottom:4px;">
+          <h4>${esc(r.title)}</h4>
+          <span class="badge badge-muted" style="font-size:.62rem;">${esc(r.category)}</span>
+          <span class="rec-priority priority-${r.priority}">${r.priority}</span>
+        </div>
+        <p>${esc(r.detail)}</p>
+      </div>
+    </div>`).join('');
+}
+
+function renderChips(arr,type){
+  if(!arr?.length)return'<p style="font-size:.76rem;color:var(--t3);">None</p>';
+  return arr.map(s=>`<span class="chip chip-${type}">${esc(s)}</span>`).join('');
+}
+
+function renderStr(s){
+  const L={summary:'Summary',skills:'Skills',experience:'Experience',projects:'Projects',education:'Education',achievements:'Achievements'};
+  const C={summary:'',skills:'',experience:'pk',projects:'g2',education:'am',achievements:''};
+  return Object.entries(s).map(([k,v])=>`
+    <div class="progress-wrap">
+      <div class="progress-label"><span>${L[k]||k}</span><span>${v>=100?'✅':v===0?'❌ Empty':Math.round(v)+'%'}</span></div>
+      <div class="progress-track"><div class="progress-fill ${C[k]||''} ${v<30?'danger':''}" style="width:${v}%"></div></div>
+    </div>`).join('');
+}
+
+function renderRoadmap(rd){
+  if(!rd?.length){document.getElementById('rd-empty').style.display='block';return'';}
+  return rd.map(r=>`
+    <div class="roadmap-step">
+      <div class="rs-header">
+        <div class="rs-num">${r.step}</div>
+        <div class="rs-skill">${esc(r.skill)}</div>
+        <div class="rs-week">${r.timeline}</div>
+      </div>
+      <p class="rs-action">${esc(r.action)}</p>
+      <div class="yt-card">
+        <div style="font-size:1.3rem;">▶️</div>
+        <div style="flex:1;">
+          <div class="yt-title">${esc(r.yt_title||'Learn '+r.skill)}</div>
+          <div class="yt-ch">📺 ${esc(r.yt_ch||'YouTube')}</div>
+          <a href="${r.yt_url||'https://www.youtube.com/results?search_query=learn+'+encodeURIComponent(r.skill)}"
+             target="_blank" rel="noopener" class="yt-btn">▶ Watch on YouTube</a>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function loadRoles(domain){
+  try{
+    const r=await fetch(`${API}/job_roles?domain=${domain}`);
+    const d=await r.json();
+    if(!d.success)return;
+    document.getElementById('role-grid').innerHTML=d.roles.map(r=>`
+      <div class="role-card" onclick="this.parentNode.querySelectorAll('.role-card').forEach(c=>c.classList.remove('active'));this.classList.add('active');">
+        <span>${r.icon}</span><span>${esc(r.label)}</span>
+      </div>`).join('');
+  }catch(e){}
+}
+
+async function load(){
+  const p=new URLSearchParams(window.location.search);
+  const rid=p.get('result_id')||localStorage.getItem('result_id');
+  if(!rid){
+    document.getElementById('loading-overlay').innerHTML=`<div style="text-align:center;"><p style="color:var(--t2);margin-bottom:1rem;">No results found</p><a href="upload.html" class="btn btn-primary">Analyze a Resume</a></div>`;
+    return;
+  }
+  try{
+    const res=await fetch(`${API}/get_results/${rid}`);
+    const data=await res.json();
+    if(!data.success)throw new Error(data.error||'Failed');
+    const r=data.result;
+    const fit=r.fit_score||0;
+    const color=scolor(fit);
+    const [bc,bl]=slabel(fit);
+    const J=x=>typeof x==='string'?JSON.parse(x):(x||{});
+    const JA=x=>typeof x==='string'?JSON.parse(x):(x||[]);
+    const comp=J(r.component_scores);
+    const sa=J(r.skill_analysis);
+    const ss=J(r.section_strength);
+    const recs=JA(r.recommendations);
+    const rd=JA(r.roadmap);
+    const ka=J(r.keyword_analysis);
+
+    document.getElementById('meta').textContent=`Analyzed: ${new Date(r.created_at).toLocaleString()} · ${r.domain||'General'}`;
+    document.getElementById('sbadge').innerHTML=`<span class="badge ${bc}">${bl}</span>`;
+    document.getElementById('smsg').textContent=smsg(fit);
+    document.getElementById('hcon').textContent=Math.round(r.consistency_score||0)+'%';
+    document.getElementById('hkw').textContent=Math.round((ka.keyword_match_pct||0)*100)+'%';
+    document.getElementById('comp-scores').innerHTML=renderComp(comp);
+    document.getElementById('rec-list').innerHTML=renderRecs(recs);
+    document.getElementById('ch-match').innerHTML=renderChips(sa.matched_skills||[],'match');
+    document.getElementById('ch-miss').innerHTML=renderChips(sa.missing_skills||[],'miss');
+    document.getElementById('ch-extra').innerHTML=renderChips(sa.extra_skills||[],'neutral');
+    document.getElementById('str-bars').innerHTML=renderStr(ss);
+    document.getElementById('rd-list').innerHTML=renderRoadmap(rd);
+
+    await loadRoles(r.domain||'tech');
+
+    document.getElementById('loading-overlay').style.display='none';
+    document.getElementById('rpage').style.display='block';
+    animScore(fit,color);
+    setTimeout(()=>document.querySelectorAll('.progress-fill[data-t]').forEach(b=>b.style.width=b.dataset.t+'%'),350);
+  }catch(e){
+    document.getElementById('loading-overlay').innerHTML=`<div style="text-align:center;"><p style="color:#FC8181;margin-bottom:1rem;">${esc(e.message)}</p><a href="upload.html" class="btn btn-primary">Try Again</a></div>`;
+  }
+}
+load();
+</script>
+</body>
+</html>

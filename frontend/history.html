@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>History — AutoResume AI</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="nav">
+  <a href="index.html" class="nav-logo"><span class="logo-pulse"></span>AutoResume AI</a>
+  <div class="nav-links">
+    <a href="index.html">Home</a><a href="builder.html">Build</a>
+    <a href="upload.html">Upload</a><a href="jd_input.html">Analyze JD</a>
+    <a href="dashboard.html">Dashboard</a><a href="history.html" class="active">History</a>
+  </div>
+</nav>
+<div class="page">
+<div class="container">
+  <div class="flex justify-between items-center mb-2" style="flex-wrap:wrap;gap:1rem;">
+    <div><h2>Analysis History</h2><p style="color:var(--t2);font-size:.85rem;">All past resume analyses</p></div>
+    <a href="upload.html" class="btn btn-primary">+ New Analysis</a>
+  </div>
+
+  <div class="flex gap-2 mb-2" style="flex-wrap:wrap;align-items:center;">
+    <select id="f-domain" class="form-select" style="width:auto;padding:.45rem .85rem;font-size:.8rem;" onchange="filter()">
+      <option value="">All Domains</option>
+      <option value="tech">Software</option><option value="data">Data/AI</option>
+      <option value="business">Business</option><option value="design">Design</option><option value="general">General</option>
+    </select>
+    <select id="f-score" class="form-select" style="width:auto;padding:.45rem .85rem;font-size:.8rem;" onchange="filter()">
+      <option value="">All Scores</option>
+      <option value="high">Strong (≥70%)</option>
+      <option value="mid">Moderate (45–70%)</option>
+      <option value="low">Weak (&lt;45%)</option>
+    </select>
+    <select id="f-sort" class="form-select" style="width:auto;padding:.45rem .85rem;font-size:.8rem;" onchange="filter()">
+      <option value="date_desc">Newest First</option>
+      <option value="date_asc">Oldest First</option>
+      <option value="score_desc">Highest Score</option>
+      <option value="score_asc">Lowest Score</option>
+    </select>
+    <span class="badge badge-muted" id="count-badge">— results</span>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div id="empty" style="text-align:center;padding:3rem;color:var(--t3);">
+      <div style="font-size:2.5rem;margin-bottom:.75rem;">📋</div>
+      <p>No analyses yet. <a href="upload.html" style="color:var(--neon);">Analyze your first resume →</a></p>
+    </div>
+    <div class="table-wrap" id="twrap" style="display:none;">
+      <table>
+        <thead><tr><th>Score</th><th>File / JD Preview</th><th>Domain</th><th>Consistency</th><th>Date</th><th></th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+<div class="toast-container" id="toast-container"></div>
+<script src="main.js"></script>
+<script>
+let all=[];
+const DL={tech:'Software',data:'Data/AI',business:'Business',design:'Design',general:'General'};
+function sc(s){if(s>=70)return{bg:'rgba(0,255,148,.1)',fg:'#00FF94'};if(s>=45)return{bg:'rgba(255,184,0,.1)',fg:'#FFB800'};return{bg:'rgba(239,68,68,.1)',fg:'#FC8181'};}
+
+async function load(){
+  try{
+    const r=await fetch(`${API}/history?limit=100`);
+    const d=await r.json();
+    if(!d.success)throw new Error(d.error);
+    all=d.history||[];
+    filter();
+  }catch(e){showToast('❌ Cannot connect to backend');}
+}
+
+function filter(){
+  const dom=document.getElementById('f-domain').value;
+  const score=document.getElementById('f-score').value;
+  const sort=document.getElementById('f-sort').value;
+  let rows=[...all];
+  if(dom)rows=rows.filter(r=>r.domain===dom);
+  if(score==='high')rows=rows.filter(r=>(r.fit_score||0)>=70);
+  if(score==='mid')rows=rows.filter(r=>(r.fit_score||0)>=45&&(r.fit_score||0)<70);
+  if(score==='low')rows=rows.filter(r=>(r.fit_score||0)<45);
+  rows.sort((a,b)=>{
+    if(sort==='date_asc')return new Date(a.created_at)-new Date(b.created_at);
+    if(sort==='score_desc')return(b.fit_score||0)-(a.fit_score||0);
+    if(sort==='score_asc')return(a.fit_score||0)-(b.fit_score||0);
+    return new Date(b.created_at)-new Date(a.created_at);
+  });
+  document.getElementById('count-badge').textContent=`${rows.length} result${rows.length!==1?'s':''}`;
+  if(!rows.length){document.getElementById('empty').style.display='block';document.getElementById('twrap').style.display='none';return;}
+  document.getElementById('empty').style.display='none';document.getElementById('twrap').style.display='block';
+  document.getElementById('tbody').innerHTML=rows.map((h,i)=>{
+    const s=sc(h.fit_score||0);
+    const prev=rows[i+1];
+    const diff=prev?Math.round((h.fit_score||0)-(prev.fit_score||0)):null;
+    const arr=diff===null?'':(diff>2?`<span style="color:#00FF94;font-size:.7rem;"> ▲${diff}%</span>`:diff<-2?`<span style="color:#FC8181;font-size:.7rem;"> ▼${Math.abs(diff)}%</span>`:`<span style="color:var(--t3);font-size:.7rem;"> ─</span>`);
+    const date=new Date(h.created_at).toLocaleDateString('en',{day:'2-digit',month:'short',year:'numeric'});
+    const fname=esc((h.filename||'Resume').replace(/\.[^.]+$/,'').substring(0,24));
+    const jdp=h.jd_text?esc(h.jd_text.substring(0,55))+'...':'—';
+    return `<tr>
+      <td><div class="h-score" style="background:${s.bg};color:${s.fg};">${Math.round(h.fit_score||0)}%</div>${arr}</td>
+      <td><div style="font-weight:700;font-size:.83rem;">${fname}</div><div style="font-size:.7rem;color:var(--t3);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${jdp}</div></td>
+      <td><span class="badge badge-neon" style="font-size:.64rem;">${DL[h.domain]||h.domain||'General'}</span></td>
+      <td style="color:var(--t2);font-size:.82rem;">${Math.round(h.consistency_score||0)}%</td>
+      <td style="color:var(--t3);font-size:.76rem;">${date}</td>
+      <td><a href="results.html?result_id=${h.result_id}" class="btn btn-glass btn-sm">View</a></td>
+    </tr>`;
+  }).join('');
+}
+load();
+</script>
+</body>
+</html>

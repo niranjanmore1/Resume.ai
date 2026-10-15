@@ -1,0 +1,139 @@
+<!-- builder.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Build Resume — AutoResume AI</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="nav">
+  <a href="index.html" class="nav-logo"><span class="logo-pulse"></span>AutoResume AI</a>
+  <div class="nav-links">
+    <a href="index.html">Home</a><a href="builder.html" class="active">Build</a>
+    <a href="upload.html">Upload</a><a href="jd_input.html">Analyze JD</a>
+    <a href="dashboard.html">Dashboard</a><a href="history.html">History</a>
+  </div>
+</nav>
+<div class="loading-overlay" id="loading-overlay" style="display:none;"><div class="spinner"></div><p id="loading-text">Building...</p></div>
+<div class="page">
+<div class="container" style="max-width:840px;">
+  <div class="page-header"><h2>Resume Builder</h2><p>Fill each section — then analyze against any job description</p></div>
+  <div class="card mb-2">
+    <div class="form-group" style="margin-bottom:0;"><label class="form-label">Target Domain</label>
+      <select class="form-select" id="b-domain">
+        <option value="tech">💻 Software & Engineering</option><option value="data">📊 Data Science & AI</option>
+        <option value="business">📈 Business & Management</option><option value="design">🎨 Design & Creative</option>
+        <option value="general">🌐 General</option>
+      </select>
+    </div>
+  </div>
+  <div class="section-tab">
+    <button class="tab-btn active" onclick="sw('personal',this)">👤 Personal</button>
+    <button class="tab-btn" onclick="sw('education',this)">🎓 Education</button>
+    <button class="tab-btn" onclick="sw('skills',this)">🛠️ Skills</button>
+    <button class="tab-btn" onclick="sw('experience',this)">💼 Experience</button>
+    <button class="tab-btn" onclick="sw('projects',this)">🚀 Projects</button>
+    <button class="tab-btn" onclick="sw('achievements',this)">🏆 Achievements</button>
+  </div>
+
+  <div class="tab-panel active card" id="tab-personal">
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="p-name" placeholder="Rohit Sharma"></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="p-email" placeholder="rohit@email.com"></div>
+      <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="p-phone" placeholder="+91 99999 99999"></div>
+      <div class="form-group"><label class="form-label">LinkedIn</label><input class="form-input" id="p-linkedin" placeholder="linkedin.com/in/rohit"></div>
+      <div class="form-group"><label class="form-label">GitHub</label><input class="form-input" id="p-github" placeholder="github.com/rohit"></div>
+      <div class="form-group"><label class="form-label">Portfolio / Website</label><input class="form-input" id="p-web" placeholder="rohit.dev"></div>
+    </div>
+    <div class="form-group" style="margin-bottom:0;"><label class="form-label">Professional Summary</label>
+      <textarea class="form-textarea" id="p-summary" placeholder="Write 3–4 sentences about your strengths and what value you bring to the role..."></textarea>
+    </div>
+  </div>
+
+  <div class="tab-panel card" id="tab-education">
+    <div id="edu-list"></div>
+    <button class="add-item-btn" onclick="addEdu()">+ Add Education</button>
+  </div>
+
+  <div class="tab-panel card" id="tab-skills">
+    <div class="form-group">
+      <label class="form-label">Add Skills</label>
+      <div style="display:flex;gap:.5rem;">
+        <input class="form-input" id="skill-input" placeholder="e.g. Python, React, Docker..." onkeydown="if(event.key==='Enter'||event.key===','){event.preventDefault();addSkill();}">
+        <button class="btn btn-outline" onclick="addSkill()">Add</button>
+      </div>
+      <p style="font-size:.72rem;color:var(--t3);margin-top:5px;">Press Enter or comma to add each skill</p>
+    </div>
+    <div class="chip-group" id="skills-list"></div>
+  </div>
+
+  <div class="tab-panel card" id="tab-experience">
+    <div id="exp-list"></div>
+    <button class="add-item-btn" onclick="addExp()">+ Add Experience</button>
+  </div>
+
+  <div class="tab-panel card" id="tab-projects">
+    <div id="proj-list"></div>
+    <button class="add-item-btn" onclick="addProj()">+ Add Project</button>
+  </div>
+
+  <div class="tab-panel card" id="tab-achievements">
+    <div id="ach-list"></div>
+    <button class="add-item-btn" onclick="addAch()">+ Add Achievement / Certification</button>
+  </div>
+
+  <div class="flex justify-between mt-3" style="align-items:center;">
+    <p style="font-size:.78rem;color:var(--t2);">💡 After building, you'll add a job description to get your score</p>
+    <button class="btn btn-primary btn-lg" onclick="build()">Build & Analyze 🚀</button>
+  </div>
+</div>
+</div>
+<div class="toast-container" id="toast-container"></div>
+<script src="main.js"></script>
+<script>
+let skills=[];
+function sw(n,b){document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));document.getElementById('tab-'+n).classList.add('active');b.classList.add('active');}
+function addSkill(){const i=document.getElementById('skill-input');const vs=i.value.split(',').map(s=>s.trim()).filter(Boolean);vs.forEach(v=>{if(v&&!skills.includes(v))skills.push(v);});i.value='';renderSkills();}
+function removeSkill(s){skills=skills.filter(x=>x!==s);renderSkills();}
+function renderSkills(){document.getElementById('skills-list').innerHTML=skills.map(s=>`<div class="skill-tag">${esc(s)}<button onclick="removeSkill('${esc(s)}')">✕</button></div>`).join('');}
+
+let ec=0,xc=0,pc=0,ac=0;
+function addEdu(){ec++;const id=`e${ec}`;document.getElementById('edu-list').insertAdjacentHTML('beforeend',`<div class="list-item-card" id="${id}"><button class="remove-btn" onclick="document.getElementById('${id}').remove()">✕</button><div class="form-grid"><div class="form-group"><label class="form-label">Degree</label><input class="form-input edu-deg" placeholder="B.Tech, MBA..."></div><div class="form-group"><label class="form-label">Field</label><input class="form-input edu-field" placeholder="Computer Science"></div><div class="form-group"><label class="form-label">Institution</label><input class="form-input edu-inst" placeholder="IIT Delhi"></div><div class="form-group"><label class="form-label">Year</label><input class="form-input edu-year" placeholder="2024"></div></div></div>`);}
+function addExp(){xc++;const id=`x${xc}`;document.getElementById('exp-list').insertAdjacentHTML('beforeend',`<div class="list-item-card" id="${id}"><button class="remove-btn" onclick="document.getElementById('${id}').remove()">✕</button><div class="form-grid"><div class="form-group"><label class="form-label">Job Title</label><input class="form-input exp-title" placeholder="Software Engineer"></div><div class="form-group"><label class="form-label">Company</label><input class="form-input exp-co" placeholder="Google"></div><div class="form-group"><label class="form-label">Duration</label><input class="form-input exp-dur" placeholder="Jan 2022 – Jun 2023"></div><div class="form-group"><label class="form-label">Location</label><input class="form-input exp-loc" placeholder="Remote"></div></div><div class="form-group" style="margin-bottom:0;"><label class="form-label">Key Responsibilities</label><textarea class="form-textarea exp-desc" style="min-height:90px;" placeholder="• Built REST APIs in Python&#10;• Reduced page load by 40%&#10;• Led team of 3 engineers"></textarea></div></div>`);}
+function addProj(){pc++;const id=`p${pc}`;document.getElementById('proj-list').insertAdjacentHTML('beforeend',`<div class="list-item-card" id="${id}"><button class="remove-btn" onclick="document.getElementById('${id}').remove()">✕</button><div class="form-grid"><div class="form-group"><label class="form-label">Project Name</label><input class="form-input proj-name" placeholder="E-Commerce Platform"></div><div class="form-group"><label class="form-label">Tech Stack</label><input class="form-input proj-tech" placeholder="React, Node.js, MongoDB"></div></div><div class="form-group"><label class="form-label">GitHub / Demo Link</label><input class="form-input proj-link" placeholder="https://github.com/..."></div><div class="form-group" style="margin-bottom:0;"><label class="form-label">Description & Impact</label><textarea class="form-textarea proj-desc" style="min-height:80px;" placeholder="What did you build? What was the outcome?"></textarea></div></div>`);}
+function addAch(){ac++;const id=`a${ac}`;document.getElementById('ach-list').insertAdjacentHTML('beforeend',`<div class="list-item-card" id="${id}"><button class="remove-btn" onclick="document.getElementById('${id}').remove()">✕</button><div class="form-grid"><div class="form-group"><label class="form-label">Title</label><input class="form-input ach-title" placeholder="AWS Certified Developer"></div><div class="form-group"><label class="form-label">Issuer / Year</label><input class="form-input ach-iss" placeholder="Amazon Web Services, 2024"></div></div></div>`);}
+
+function collect(){
+  return{
+    personal:{name:q('#p-name'),email:q('#p-email'),phone:q('#p-phone'),linkedin:q('#p-linkedin'),github:q('#p-github'),website:q('#p-web'),summary:q('#p-summary')},
+    education:[...document.querySelectorAll('#edu-list .list-item-card')].map(el=>({degree:v(el,'.edu-deg'),field:v(el,'.edu-field'),institution:v(el,'.edu-inst'),year:v(el,'.edu-year')})).filter(e=>e.degree||e.institution),
+    skills,
+    experience:[...document.querySelectorAll('#exp-list .list-item-card')].map(el=>({title:v(el,'.exp-title'),company:v(el,'.exp-co'),duration:v(el,'.exp-dur'),location:v(el,'.exp-loc'),description:v(el,'.exp-desc')})).filter(e=>e.title),
+    projects:[...document.querySelectorAll('#proj-list .list-item-card')].map(el=>({name:v(el,'.proj-name'),tech:v(el,'.proj-tech'),link:v(el,'.proj-link'),description:v(el,'.proj-desc')})).filter(e=>e.name),
+    achievements:[...document.querySelectorAll('#ach-list .list-item-card')].map(el=>{const t=v(el,'.ach-title'),i=v(el,'.ach-iss');return t?t+(i?' — '+i:''):'';}).filter(Boolean),
+    domain:document.getElementById('b-domain').value
+  };
+}
+function q(sel){return(document.querySelector(sel)||{}).value||'';}
+function v(el,sel){return(el.querySelector(sel)||{}).value||'';}
+
+async function build(){
+  const data=collect();
+  if(!data.personal.name){showToast('⚠️ Please enter your name in Personal section');return;}
+  if(!data.skills.length){showToast('⚠️ Please add at least a few skills');return;}
+  showLoading('Building your resume...');
+  try{
+    const r=await fetch(`${API}/build_resume`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    const d=await r.json();
+    if(!d.success){showToast('❌ '+d.error);return;}
+    localStorage.setItem('resume_id',d.resume_id);
+    showToast('✅ Resume built! Now add a job description...');
+    setTimeout(()=>window.location.href='jd_input.html',1000);
+  }catch(e){showToast('❌ Server error — make sure backend is running');}
+  finally{hideLoading();}
+}
+addEdu();addExp();addProj();
+</script>
+</body>
+</html>
