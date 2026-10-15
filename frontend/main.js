@@ -1,4 +1,4 @@
-const API = 'http://localhost:5000/api';
+const API = '/api';
 
 function showToast(msg, ms=3500) {
   const c = document.getElementById('toast-container');
